@@ -88,7 +88,7 @@ sensor_msgs::CameraInfoPtr getDefaultCameraInfo(int width, int height, double f)
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "openni2_camera");
-	ros::NodeHandle nh("~");
+	ros::NodeHandle nh;
 
 	ROS_INFO("creating image_transport... this might take a while...");
 	image_transport::ImageTransport it(nh);
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 		cv_bridge::CvImagePtr cv_ptr_depth(new cv_bridge::CvImage);
 		cv_bridge::CvImagePtr cv_ptr_rgb(new cv_bridge::CvImage);
 		ROS_INFO("Everything set up... lets stream some images");
-		while (ros::ok()) 
+		while ( ros::ok()) 
 		{
 	    int changedIndex;
 	    OpenNI::waitForAnyStream( streams, 2, &changedIndex );
@@ -167,18 +167,20 @@ int main(int argc, char **argv)
 						// convert cv::Mat into cv_bridge image
 						cv_ptr_depth->image = depthImage;
 						cv_ptr_depth->encoding = "16UC1";
-						cv_ptr_depth->header.frame_id = "/openni2_depth_frame";
+						cv_ptr_depth->header.frame_id = "/camera_depth_frame";
 						cv_ptr_depth->header.stamp = time;
 						image_pub_depth.publish(cv_ptr_depth->toImageMsg());
 
-						sensor_msgs::CameraInfoPtr info = getDefaultCameraInfo(640, 480, 570.3422241210938);
+						sensor_msgs::CameraInfoPtr info = 
+										getDefaultCameraInfo(depthImage.cols, depthImage.rows, 
+																		570.3422241210938 * depthImage.cols / 640.);
 						info->K[2] -= 5; // cx
 						info->K[5] -= 4; // cy
 						info->P[2] -= 5; // cx
 						info->P[6] -= 4; // cy
 						// Fill in header
 						info->header.stamp    = time;
-						info->header.frame_id = "/openni2_depth_frame";
+						info->header.frame_id = "/camera_depth_frame";
 						pub_depth_camera_info.publish(info);
 				  }
 				} break;
@@ -195,14 +197,16 @@ int main(int argc, char **argv)
 						// convert cv::Mat into cv_bridge image
 						cv_ptr_rgb->image = rgbImage;
 						cv_ptr_rgb->encoding = "rgb8";
-						cv_ptr_rgb->header.frame_id = "/openni2_rgb_frame";
+						cv_ptr_rgb->header.frame_id = "/camera_rgb_frame";
 						cv_ptr_rgb->header.stamp = time;
 						image_pub_rgb.publish(cv_ptr_rgb->toImageMsg());	
 
-						sensor_msgs::CameraInfoPtr info = getDefaultCameraInfo(640, 480, 525);
+						sensor_msgs::CameraInfoPtr info =
+										getDefaultCameraInfo(rgbImage.cols, rgbImage.rows, 
+																		525 * rgbImage.cols / 640.);
 						// Fill in header
 						info->header.stamp    = time;
-						info->header.frame_id = "/openni2_rgb_frame";
+						info->header.frame_id = "/camera_rgb_frame";
 						pub_rgb_camera_info.publish(info);
 					}
 				} break;
